@@ -3,7 +3,7 @@ $:.push File.expand_path("../lib", __FILE__)
 require "nibbler/version"
 
 Gem::Specification.new do |s|
-  s.name        = "nibbler"
+  s.name        = "rm-nibbler"
   s.version     = Nibbler::VERSION
   s.authors     = ["Bennett Hoffman"]
   s.email       = ["benn.hoffman@gmail.com"]
