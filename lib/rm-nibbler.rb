@@ -5,7 +5,7 @@ unless defined?(Motion::Project::Config)
 end
 
 Motion::Project::App.setup do |app|
-  Dir.glob(File.join(File.dirname(__FILE__), 'nibbler/alert.rb')).each do |file|
+  Dir.glob(File.join(File.dirname(__FILE__), 'nibbler/**/*.rb')).each do |file|
     app.files.unshift(file)
   end
 end
