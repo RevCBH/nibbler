@@ -1,17 +1,40 @@
+module Nibbler
+  class IVarMapper
+    def initialize(source)
+      @source = source
+    end
+
+    def [](name)
+      @source.instance_variable_get name
+    end
+
+    def []=(name, value)
+      @source.instance_variable_set name, value
+    end
+  end
+end
+
 class Object
   def singleton_class
     class << self; self end
   end
 
-  # TODO - use inherited and aliasing to allow redefinition of method_missing without breaking
+  # TODO - use inherited and aliasing to allow redefinition of method_missing without breaking?
   def method_missing(msg, *args, &block)
     proc = self.singleton_class.resolve_dynamic_method(msg) || self.class.resolve_dynamic_method(msg)
-    unless proc.nil?      
-      proc.call(args, block) unless block.nil?
-      proc.call(args) if block.nil?          
+    if !proc.nil?
+      args.unshift self     
+      return if block.nil?
+        proc.call(*args)
+      else
+        proc.call(*args, &block)
+      end      
+    elsif self.respond_to? :method_missing!
+      return method_missing!(msg, *args, &block)
     else
       begin
         super(msg, *args, &block)
+        # TODO - report RM bug for when block is empty
       rescue NoMethodError => ex
         new_ex = NoMethodError.new("undefined method \`#{msg}' for #{self.inspect}:#{self.class}")
         new_ex.set_backtrace ex.backtrace
@@ -30,6 +53,18 @@ class Object
     !(self.singleton_class.resolve_dynamic_method(msg) || 
       self.class.resolve_dynamic_method(msg)).nil?
   end
+
+  def _get(name)
+    self.instance_variable_get(name)
+  end
+
+  def _set(name,value)
+    self.instance_variable_set(name, value)
+  end
+
+  def _call(msg,*args,&proc)
+    self.send(msg, *args, &proc)
+  end
 end
 
 class Class
@@ -47,5 +82,9 @@ class Class
     else
       self.superclass.resolve_dynamic_method(msg) if self.superclass
     end
+  end
+
+  def method_added(msg)
+    raise "method_missing is reserved, use method_missing! instead" if msg == :method_missing
   end
 end

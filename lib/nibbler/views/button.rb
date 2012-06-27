@@ -28,4 +28,18 @@ module Nibbler
       @view.titleLabel.text == str
     end
   end
+
+  class Controller < UIViewController
+    def self.button(selector={},opts=nil)
+      if opts.nil? && selector.kind_of?(Hash)
+        opts = selector
+        selector = UIButton
+      end
+
+      NSLog "Registering button##{selector}"
+      opts[:selector] = selector
+      opts[:type] = Button
+      (@view_specs ||= []) << opts
+    end
+  end
 end

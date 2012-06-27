@@ -6,17 +6,23 @@ module Nibbler
       Alert.show(msg)
     end
 
-    def self.button(tag,opts={})
-      NSLog "Registering button##{tag}"
-      opts[:tag] = tag
-      (@button_specs ||= []) << opts
-    end
+    # def self.button(tag,opts={})
+    #   NSLog "Registering button##{tag}"
+    #   opts[:tag] = tag
+    #   (@button_specs ||= []) << opts
+    # end
 
-    def self.nav_bar(selector=nil,opts={},&block)
+    def self.nav_bar(selector={},opts=nil, &block)
+      if opts.nil? && selector.kind_of?(Hash)
+        opts = selector
+        selector = UINavigationBar
+      end
+
       NSLog "Registering nav_bar##{selector}"
-      opts[:selector] = selector || UINavigationBar
+      opts[:selector] = selector
+      opts[:type] = NavBar
       opts[:block] = block if block_given?
-      (@nav_bar_specs ||= []) << opts
+      (@view_specs ||= []) << opts
     end
 
     # def self.text_field(tag,opts={})
@@ -27,22 +33,26 @@ module Nibbler
 
     def viewWillAppear(animatede) #viewDidLoad
       super    
-      specs = self.class.instance_variable_get('@button_specs') || [] 
+      specs = self.class.instance_variable_get('@view_specs') || [] 
       specs.each do |spec|
-        NSLog "Wiring button##{spec[:tag]} to ##{spec[:action]}"
-        b = Button.new self, spec[:tag]
-        b.action = spec[:action]
-        (@controls ||= []) << b
+        NSLog "Wiring #{spec[:type]}##{spec[:selector]}"
       end
+      # specs = self.class.instance_variable_get('@button_specs') || [] 
+      # specs.each do |spec|
+      #   NSLog "Wiring button##{spec[:tag]} to ##{spec[:action]}"
+      #   b = Button.new self, spec[:tag]
+      #   b.action = spec[:action]
+      #   (@controls ||= []) << b
+      # end
 
-      specs = self.class.instance_variable_get('@nav_bar_specs') || [] 
-      NSLog "#{specs.count} NavBar specs..."
-      specs.each do |spec|
-        NSLog "Wiring nav_bar##{spec[:selector]}"
-        b = NavBar.new self, spec[:selector]
-        spec[:block].call(b) unless spec[:block].nil?
-        (@controls ||= []) << b
-      end      
+      # specs = self.class.instance_variable_get('@nav_bar_specs') || [] 
+      # NSLog "#{specs.count} NavBar specs..."
+      # specs.each do |spec|
+      #   NSLog "Wiring nav_bar##{spec[:selector]}"
+      #   b = NavBar.new self, spec[:selector]
+      #   spec[:block].call(b) unless spec[:block].nil?
+      #   (@controls ||= []) << b
+      # end      
 
       # self.class.instance_variable_get('@text_field_specs').each do |spec|
       #   NSLog "Wiring text_field##{spec[:tag]} named @#{spec[:named]}"
@@ -54,7 +64,8 @@ module Nibbler
     end
 
     def self.inherited(subclass)
-      puts "Subclass: #{subclass}"
+      puts "Controller Subclass: #{subclass}"
+      super(subclass)
       subclass.instance_variable_set('@nav_bar_specs', @nav_bar_specs.dup) if @nav_bar_specs
     end
 
