@@ -19,27 +19,31 @@ class Object
     class << self; self end
   end
 
-  # TODO - use inherited and aliasing to allow redefinition of method_missing without breaking?
+  # TODO - use inherited and aliasing to allow redefinition of method_missing without breaking
   def method_missing(msg, *args, &block)
+    puts "Object#method_missing(#{msg})"    
     proc = self.singleton_class.resolve_dynamic_method(msg) || self.class.resolve_dynamic_method(msg)
-    if !proc.nil?
-      args.unshift self     
-      return if block.nil?
-        proc.call(*args)
+
+    begin
+      if !proc.nil?
+        args.unshift self     
+        res = if block.nil?
+          proc.call(*args)
+        else
+          proc.call(*args, &block)
+        end
+        return res
+      elsif msg != :method_missing! && self.respond_to?(:method_missing!)
+        puts "\tdelgating to method_missing!"
+        return method_missing!(msg, *args, &block)
       else
-        proc.call(*args, &block)
-      end      
-    elsif self.respond_to? :method_missing!
-      return method_missing!(msg, *args, &block)
-    else
-      begin
-        super(msg, *args, &block)
-        # TODO - report RM bug for when block is empty
-      rescue NoMethodError => ex
-        new_ex = NoMethodError.new("undefined method \`#{msg}' for #{self.inspect}:#{self.class}")
-        new_ex.set_backtrace ex.backtrace
-        raise new_ex
+          return super(msg, *args, &block)
+          # TODO - report RM bug for when block is empty
       end
+    rescue NoMethodError => ex
+      new_ex = NoMethodError.new("undefined method \`#{msg}' for #{self.inspect}:#{self.class}")
+      new_ex.set_backtrace ex.backtrace
+      raise new_ex
     end
   end
 
@@ -85,6 +89,7 @@ class Class
   end
 
   def method_added(msg)
+    puts "method_added: #{self}##{msg}"
     raise "method_missing is reserved, use method_missing! instead" if msg == :method_missing
   end
 end

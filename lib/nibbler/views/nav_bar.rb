@@ -1,4 +1,4 @@
-module Nibbler
+module Nibbler; module Views
   class NavBar
     include View
 
@@ -27,4 +27,4 @@ module Nibbler
       end      
     end      
   end
-end
+end; end

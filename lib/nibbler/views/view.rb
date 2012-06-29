@@ -1,4 +1,4 @@
-module Nibbler
+module Nibbler; module Views
   module View
     def select(selector)
       NSLog "#{view_instance.class}::select(#{selector.class}:#{selector})"
@@ -40,10 +40,10 @@ module Nibbler
       matches_string?(sym.to_s)
     end
   end
-end
+end; end
 
 class UIView
-  include Nibbler::View
+  include Nibbler::Views::View
 
   def view_instance
     self

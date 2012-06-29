@@ -6,24 +6,48 @@ module Nibbler
       Alert.show(msg)
     end
 
+    def self.method_missing!(msg, *args, &block)
+      begin
+        type = "Nibbler::Views::#{msg.to_s.camelize}".constantize
+        if type.kind_of? Class
+          singleton_class.define_method(msg) do |x, selector={}, opts, &block|
+            if opts.nil? && selector.kind_of?(Hash)
+              opts = selector
+              selector = UINavigationBar
+            end
+
+            NSLog "Registering #{type}##{selector}"
+            opts[:selector] = selector
+            opts[:type] = type
+            opts[:block] = block if block_given?
+            (@view_specs ||= []) << opts
+          end
+
+          self.send(msg, *args, &block)
+        end
+      rescue
+        raise NameError.new
+      end        
+    end
+
     # def self.button(tag,opts={})
     #   NSLog "Registering button##{tag}"
     #   opts[:tag] = tag
     #   (@button_specs ||= []) << opts
     # end
 
-    def self.nav_bar(selector={},opts=nil, &block)
-      if opts.nil? && selector.kind_of?(Hash)
-        opts = selector
-        selector = UINavigationBar
-      end
+    # def self.nav_bar(selector={},opts=nil, &block)
+    #   if opts.nil? && selector.kind_of?(Hash)
+    #     opts = selector
+    #     selector = UINavigationBar
+    #   end
 
-      NSLog "Registering nav_bar##{selector}"
-      opts[:selector] = selector
-      opts[:type] = NavBar
-      opts[:block] = block if block_given?
-      (@view_specs ||= []) << opts
-    end
+    #   NSLog "Registering nav_bar##{selector}"
+    #   opts[:selector] = selector
+    #   opts[:type] = NavBar
+    #   opts[:block] = block if block_given?
+    #   (@view_specs ||= []) << opts
+    # end
 
     # def self.text_field(tag,opts={})
     #   NSLog "Registering text_field##{tag}"
@@ -36,6 +60,13 @@ module Nibbler
       specs = self.class.instance_variable_get('@view_specs') || [] 
       specs.each do |spec|
         NSLog "Wiring #{spec[:type]}##{spec[:selector]}"
+        c = spec[:type].new(self, spec)
+        if spec[:as]
+          self.instance_variable_set "@#{spec[:as]}", c
+          $control = c
+          self.define_method(spec[:as].to_sym) {|x| x._get("@#{spec[:as]}")}
+        end
+        (@controls ||= []) << c
       end
       # specs = self.class.instance_variable_get('@button_specs') || [] 
       # specs.each do |spec|
