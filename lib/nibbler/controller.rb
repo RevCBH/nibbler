@@ -6,21 +6,31 @@ module Nibbler
       Alert.show(msg)
     end
 
+    def self.view_specs(scope=:self)
+      []
+    end
+
     def self.method_missing!(msg, *args, &block)
-      begin
-        type = "Nibbler::Views::#{msg.to_s.camelize}".constantize
+      begin        
+        type = "Nibbler::Views::#{msg.to_s.camelize}".constantize        
+
         if type.kind_of? Class
           singleton_class.define_method(msg) do |x, selector={}, opts, &block|
             if opts.nil? && selector.kind_of?(Hash)
               opts = selector
-              selector = UINavigationBar
+              selector = type.view_type
             end
 
-            NSLog "Registering #{type}##{selector}"
+            # ISSUE - local variable get reused in block due to define_method impl?
+            opts = opts.dup
+
+            puts "Registering #{type}##{selector}"
             opts[:selector] = selector
             opts[:type] = type
             opts[:block] = block if block_given?
-            (@view_specs ||= []) << opts
+            specs = x._call(:view_specs) << opts
+            puts "\tspecs: #{specs}"
+            puts "\t_call:vs: #{x._call(:view_specs)}"
           end
 
           self.send(msg, *args, &block)
@@ -55,15 +65,17 @@ module Nibbler
     #   (@text_field_specs ||=[]) << opts
     # end
 
-    def viewWillAppear(animatede) #viewDidLoad
+    def viewWillAppear(animated)
       super    
-      specs = self.class.instance_variable_get('@view_specs') || [] 
+      specs = self.class.view_specs(:all)
+      puts "#{self.class}#viewWillAppear"
+      puts "\t#{specs}"
       specs.each do |spec|
         NSLog "Wiring #{spec[:type]}##{spec[:selector]}"
         c = spec[:type].new(self, spec)
+        spec[:block].call(c) if spec[:block]
         if spec[:as]
           self.instance_variable_set "@#{spec[:as]}", c
-          $control = c
           self.define_method(spec[:as].to_sym) {|x| x._get("@#{spec[:as]}")}
         end
         (@controls ||= []) << c
@@ -97,7 +109,22 @@ module Nibbler
     def self.inherited(subclass)
       puts "Controller Subclass: #{subclass}"
       super(subclass)
-      subclass.instance_variable_set('@nav_bar_specs', @nav_bar_specs.dup) if @nav_bar_specs
+
+      subclass.define_method(:view_specs) do |x, scope=:self|
+        specs = x._get('@view_specs')
+        if specs.nil?
+          specs._set('@view_specs', [])
+          specs = []
+        end
+
+        if scope == :all
+          specs = specs.dup
+          specs.concat x._call(:superclass).view_specs(:all) if x._call(:superclass).respond_to?(:view_specs)          
+        end
+
+        return specs
+      end
+
     end
 
     def transition_to(target, opts={})

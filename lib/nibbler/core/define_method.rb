@@ -21,7 +21,7 @@ class Object
 
   # TODO - use inherited and aliasing to allow redefinition of method_missing without breaking
   def method_missing(msg, *args, &block)
-    puts "Object#method_missing(#{msg})"    
+    puts "#{self.class}#method_missing(#{msg})"    
     proc = self.singleton_class.resolve_dynamic_method(msg) || self.class.resolve_dynamic_method(msg)
 
     begin
@@ -89,7 +89,6 @@ class Class
   end
 
   def method_added(msg)
-    puts "method_added: #{self}##{msg}"
     raise "method_missing is reserved, use method_missing! instead" if msg == :method_missing
   end
 end

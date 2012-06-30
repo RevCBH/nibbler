@@ -1,6 +1,7 @@
 module Nibbler; module Views
   class Button
     include View
+    view_type UIButton
 
     def initialize(controller, spec)
       @controller = controller

@@ -39,6 +39,20 @@ module Nibbler; module Views
     def matches_symbol?(sym)
       matches_string?(sym.to_s)
     end
+
+    def self.included(base)
+      base.extend(ClassMethods)
+    end
+
+    module ClassMethods
+      def view_type(type=nil)
+        unless type.nil?                
+          @view_type = type
+        end
+
+        return @view_type
+      end
+    end
   end
 end; end
 
