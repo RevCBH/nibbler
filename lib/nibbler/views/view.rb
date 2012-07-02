@@ -54,6 +54,31 @@ module Nibbler; module Views
       end
     end
   end
+
+  class ViewBase
+    include View
+
+    def initialize(controller, spec)
+      puts "View#initialize"
+      @controller = controller
+      selector = spec[:selector]      
+      self.view_instance = controller.view.select(selector)[0]
+      puts "self.view_instance: #{self.view_instance}"
+    end
+
+    def method_missing!(msg, *args, &block)
+      puts "ViewBase#method_missing!(#{msg})"
+      msg = "set#{$1.capitalize}:".to_sym if msg.to_s =~ /(.*)=/
+      puts "\tconverted to: #{msg}"
+      puts "\t@view: #{@view}"
+      if @view.respond_to?(msg)
+        NSLog "\tattempting to delegate to view: #{@view}"
+        @view.send(msg, *args, &block)
+      else
+        super(msg,*args,&block)
+      end
+    end
+  end
 end; end
 
 class UIView

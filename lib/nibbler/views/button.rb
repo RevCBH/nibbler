@@ -1,12 +1,9 @@
 module Nibbler; module Views
-  class Button
-    include View
+  class Button < ViewBase
     view_type UIButton
 
     def initialize(controller, spec)
-      @controller = controller
-      selector = spec[:selector]
-      self.view_instance = controller.view.select(selector)[0]
+      super(controller, spec)
       
       @callbacks = []
       self.action = spec[:action]
@@ -30,33 +27,6 @@ module Nibbler; module Views
 
     def matches_string?(str)
       @view.titleLabel.text == str
-    end
-
-    def method_missing!(msg, *args, &block)
-      puts "Button#method_missing!(#{msg})"
-      msg = "set#{$1.capitalize}:".to_sym if msg.to_s =~ /(.*)=/
-      puts "\tconverted to: #{msg}"
-      puts "\t@view: #{@view}"
-      if @view.respond_to?(msg)
-        NSLog "\tattempting to delegate to view: #{@view}"
-        @view.send(msg, *args, &block)
-      else
-        super(msg,*args,&block)
-      end
-    end
-  end
-
-  class Controller < UIViewController
-    def self.button(selector={},opts=nil)
-      if opts.nil? && selector.kind_of?(Hash)
-        opts = selector
-        selector = UIButton
-      end
-
-      NSLog "Registering button##{selector}"
-      opts[:selector] = selector
-      opts[:type] = Button
-      (@view_specs ||= []) << opts
     end
   end
 end; end

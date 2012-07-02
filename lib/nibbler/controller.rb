@@ -7,7 +7,14 @@ module Nibbler
     end
 
     def self.view_specs(scope=:self)
-      []
+      @view_specs ||= []
+      if scope == :all
+        specs = @view_specs.dup
+        specs.concat superclass.view_specs(:all) if superclass.respond_to?(:view_specs)
+        return specs
+      end
+
+      return @view_specs
     end
 
     def self.method_missing!(msg, *args, &block)
