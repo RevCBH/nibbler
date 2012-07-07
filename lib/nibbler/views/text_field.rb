@@ -14,6 +14,10 @@ module Nibbler; module Views
           name: UITextFieldTextDidChangeNotification, 
           object: view_instance)
       end
+
+      if spec[:input_accessory_view]
+        view_instance.inputAccessoryView = controller.send(spec[:input_accessory_view].to_sym).view_instance
+      end
     end
   end
 end; end

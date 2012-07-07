@@ -6,25 +6,41 @@ module Nibbler
       Alert.show(msg)
     end
 
-    def self.view_specs(scope=:self)
-      @view_specs ||= []
+    def self.view_resources(scope=:self)
+      @view_resources ||= []
       if scope == :all
-        specs = @view_specs.dup
-        specs.concat superclass.view_specs(:all) if superclass.respond_to?(:view_specs)
+        specs = @view_resources.dup
+        specs.concat superclass.view_resources(:all) if superclass.respond_to?(:view_resources)
         return specs
       end
 
-      return @view_specs
+      return @view_resources
+    end
+
+    def self.resource(type, opts={}, &block)
+      opts[:kind] = :resource
+      #opts[:source] = source
+      unless type.is_a? Class
+        type = "Nibbler::Views::#{type.to_s.camelize}".constantize
+      end
+      opts[:type] = type
+      opts[:block] = block if block_given?
+      view_resources << opts
     end
 
     def self.method_missing!(msg, *args, &block)
       begin        
-        type = "Nibbler::Views::#{msg.to_s.camelize}".constantize        
+        type = "Nibbler::Views::#{msg.to_s.camelize}".constantize
 
         if type.kind_of? Class
           singleton_class.define_method(msg) do |x, selector={}, opts, &block|
+            puts "#{x.class}##{msg}(#{selector}, #{opts})"
             if opts.nil? && selector.kind_of?(Hash)
               opts = selector
+            end
+
+            if selector.kind_of?(Hash) && selector.keys.count == 0              
+              puts "Setting selector to #{type.view_type}"
               selector = type.view_type
             end
 
@@ -33,11 +49,10 @@ module Nibbler
 
             puts "Registering #{type}##{selector}"
             opts[:selector] = selector
+            opts[:kind] = :control
             opts[:type] = type
             opts[:block] = block if block_given?
-            specs = x._call(:view_specs) << opts
-            puts "\tspecs: #{specs}"
-            puts "\t_call:vs: #{x._call(:view_specs)}"
+            specs = x._call(:view_resources) << opts            
           end
 
           self.send(msg, *args, &block)
@@ -47,36 +62,29 @@ module Nibbler
       end        
     end
 
-    # def self.button(tag,opts={})
-    #   NSLog "Registering button##{tag}"
-    #   opts[:tag] = tag
-    #   (@button_specs ||= []) << opts
-    # end
-
-    # def self.nav_bar(selector={},opts=nil, &block)
-    #   if opts.nil? && selector.kind_of?(Hash)
-    #     opts = selector
-    #     selector = UINavigationBar
-    #   end
-
-    #   NSLog "Registering nav_bar##{selector}"
-    #   opts[:selector] = selector
-    #   opts[:type] = NavBar
-    #   opts[:block] = block if block_given?
-    #   (@view_specs ||= []) << opts
-    # end
-
-    # def self.text_field(tag,opts={})
-    #   NSLog "Registering text_field##{tag}"
-    #   opts[:tag] = tag
-    #   (@text_field_specs ||=[]) << opts
-    # end
-
     def viewWillAppear(animated)
       super    
-      specs = self.class.view_specs(:all)
+      specs = self.class.view_resources(:all).select {|x| x[:kind] == :control}
+      resources = self.class.view_resources(:all).select {|x| x[:kind] == :resource}
       puts "#{self.class}#viewWillAppear"
+      puts "\t#{resources}"
       puts "\t#{specs}"
+
+      resources.each do |res|
+        puts "Loading resource: #{res[:from]}"
+        # TODO - support selectors of items inside the nib
+        #[[NSBundle mainBundle] loadNibNamed:@"NumpadDismissBar" owner:self options:nil];
+        items = NSBundle.mainBundle.loadNibNamed res[:from].to_s.camelize, owner:self, options: nil
+        res[:view] = items[0]
+        c = res[:type].new(self, res)
+        c.instance_variable_set '@controller', self
+        res[:block].call(c) if res[:block]
+        if res[:as]          
+          self.instance_variable_set "@#{res[:as]}", c
+          self.define_method(res[:as].to_sym) {|x| x._get("@#{res[:as]}")}          
+        end
+      end
+
       specs.each do |spec|
         NSLog "Wiring #{spec[:type]}##{spec[:selector]}"
         c = spec[:type].new(self, spec)
@@ -87,46 +95,21 @@ module Nibbler
         end
         (@controls ||= []) << c
       end
-      # specs = self.class.instance_variable_get('@button_specs') || [] 
-      # specs.each do |spec|
-      #   NSLog "Wiring button##{spec[:tag]} to ##{spec[:action]}"
-      #   b = Button.new self, spec[:tag]
-      #   b.action = spec[:action]
-      #   (@controls ||= []) << b
-      # end
-
-      # specs = self.class.instance_variable_get('@nav_bar_specs') || [] 
-      # NSLog "#{specs.count} NavBar specs..."
-      # specs.each do |spec|
-      #   NSLog "Wiring nav_bar##{spec[:selector]}"
-      #   b = NavBar.new self, spec[:selector]
-      #   spec[:block].call(b) unless spec[:block].nil?
-      #   (@controls ||= []) << b
-      # end      
-
-      # self.class.instance_variable_get('@text_field_specs').each do |spec|
-      #   NSLog "Wiring text_field##{spec[:tag]} named @#{spec[:named]}"
-      #   t = TextField.new self, spec[:tag]
-      #   NSLog "Setting @#{spec[:named]} on #{self.class}"
-      #   self.instance_variable_set("@#{spec[:named]}", t) unless spec[:named].nil? || spec[:named] == ''
-      #   (@controls ||= []) << t
-      # end
     end
 
-    def self.inherited(subclass)
-      puts "Controller Subclass: #{subclass}"
+    def self.inherited(subclass)      
       super(subclass)
 
-      subclass.define_method(:view_specs) do |x, scope=:self|
-        specs = x._get('@view_specs')
+      subclass.define_method(:view_resources) do |x, scope=:self|
+        specs = x._get('@view_resources')
         if specs.nil?
-          specs._set('@view_specs', [])
+          specs._set('@view_resources', [])
           specs = []
         end
 
         if scope == :all
           specs = specs.dup
-          specs.concat x._call(:superclass).view_specs(:all) if x._call(:superclass).respond_to?(:view_specs)          
+          specs.concat x._call(:superclass).view_resources(:all) if x._call(:superclass).respond_to?(:view_resources)          
         end
 
         return specs
@@ -140,6 +123,11 @@ module Nibbler
       yield(view) if block_given?
       presentViewController view, animated: (opts[:animated] || false), completion: nil
     end
+
+    def hide_first_responder
+      UIApplication.sharedApplication.keyWindow.first_responder.resignFirstResponder
+    end
+    #alias_method :hideFirstResponder, :hide_first_responder
 
     private
     def init_view_from_type(type)

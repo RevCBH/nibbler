@@ -1,7 +1,6 @@
 module Nibbler; module Views
   module View
-    def select(selector)
-      NSLog "#{view_instance.class}::select(#{selector.class}:#{selector})"
+    def select_views(selector)
       msg = case selector
       when Class
         :matches_class?
@@ -12,8 +11,10 @@ module Nibbler; module Views
       when Symbol
         :matches_symbol?
       end
-
-      view_instance.subviews.select {|x| x.send msg, selector}
+      
+      results = subviews.dup.select {|x| x.send(msg, selector)}      
+      results.concat view_instance.subviews.map {|x| x.select_views(selector)}
+      results.flatten.compact
     end
 
     def view_instance 
@@ -25,7 +26,7 @@ module Nibbler; module Views
     end
 
     def matches_class?(type)
-      view_instance.kind_of? type
+      view_instance.class == type
     end
 
     def matches_fixnum?(n)
@@ -58,19 +59,29 @@ module Nibbler; module Views
   class ViewBase
     include View
 
-    def initialize(controller, spec)
-      puts "View#initialize"
+    def initialize(controller, spec)      
       @controller = controller
-      selector = spec[:selector]      
-      self.view_instance = controller.view.select(selector)[0]
-      puts "self.view_instance: #{self.view_instance}"
+      if spec[:view]
+        self.view_instance = spec[:view]
+      else
+        selector = spec[:selector]
+        self.view_instance = controller.view.select_views(selector)[0]
+      end
+    end
+
+    alias_method :select_original, :select_views
+    def select_views(selector)
+      if selector.nil? || selector.kind_of?(Hash)
+        puts "reset selector: #{selector} -> #{self.class.view_type}"
+        selector = self.class.view_type        
+      end
+      select_original(selector)
     end
 
     def method_missing!(msg, *args, &block)
       puts "ViewBase#method_missing!(#{msg})"
-      msg = "set#{$1.capitalize}:".to_sym if msg.to_s =~ /(.*)=/
-      puts "\tconverted to: #{msg}"
-      puts "\t@view: #{@view}"
+      msg = "set#{$1.capitalize}:".to_sym if msg.to_s =~ /(.*)=/      
+      # ISSUE TODO? - if args.last.kind_of?(Hash), search for "#{msg}:#{args.last.keys.join(':')}:"
       if @view.respond_to?(msg)
         NSLog "\tattempting to delegate to view: #{@view}"
         @view.send(msg, *args, &block)
@@ -86,6 +97,12 @@ class UIView
 
   def view_instance
     self
+  end
+
+  def first_responder
+    return self if self.firstResponder?
+    subviews.each {|v| x = v.first_responder; return x if !x.nil?}
+    return nil
   end
 end
 

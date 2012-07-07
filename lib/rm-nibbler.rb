@@ -9,7 +9,7 @@ Motion::Project::App.setup do |app|
     %w{version},
     :core,
     %w{alert controller},
-    {views: %w{view button nav_bar picker text_field}}
+    {views: %w{view button nav_bar picker text_field toolbar}}
   ]
 
   dir = File.dirname(__FILE__)

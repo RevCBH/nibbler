@@ -26,7 +26,15 @@ module Nibbler; module Views
     end
 
     def matches_string?(str)
-      @view.titleLabel.text == str
+      view_instance.currentTitle == str
+    end
+
+    def text
+      view_instance.currentTitle
+    end
+
+    def text=(value)
+      view_instance.setTitle(value, forState:UIControlStateNormal)
     end
   end
 end; end
