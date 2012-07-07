@@ -16,7 +16,6 @@ class String
   end
 end
 
-
 def NilClass
   def blank?
     true

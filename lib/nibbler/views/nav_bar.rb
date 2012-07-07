@@ -17,6 +17,7 @@ module Nibbler; module Views
       case selector
       when :left
         view_instance.items.map(&:leftBarButtonItem)
+      # TODO add other selector types
       else
         super selector
       end      

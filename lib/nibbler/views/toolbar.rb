@@ -1,5 +1,7 @@
 module Nibbler; module Views
   class Toolbar < ViewBase
+    view_type UIToolbar
+
     def button(selector={}, opts=nil)      
       if opts.nil? && selector.kind_of?(Hash)
         opts = selector 
