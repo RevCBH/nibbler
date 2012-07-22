@@ -108,6 +108,12 @@ end
 
 class UIButton
   def matches_string?(txt)
-    titleLabel.text.downcase[txt]
+    titleLabel.text.downcase[txt.downcase]
+  end
+end
+
+class UITextField
+  def matches_string?(str)
+    self.text.to_s.downcase.include?(str.downcase) || self.placeholder.to_s.downcase.include?(str.downcase)
   end
 end

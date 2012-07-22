@@ -9,10 +9,14 @@ module Nibbler; module Views
         msg = spec[:on][:changed].to_s
         msg += ':' unless msg =~ /.*\:$/      
 
-        NSNotificationCenter.defaultCenter.addObserver(controller, 
-          selector: msg.to_sym, 
-          name: UITextFieldTextDidChangeNotification, 
-          object: view_instance)
+        if(controller.respond_to? msg.to_sym)
+          NSNotificationCenter.defaultCenter.addObserver(controller, 
+            selector: msg.to_sym, 
+            name: UITextFieldTextDidEndEditingNotification, #UITextFieldTextDidChangeNotification, 
+            object: view_instance)
+        else
+          puts "WARN: #{controller} does not respond to :#{msg}"
+        end
       end
 
       if spec[:input_accessory_view]

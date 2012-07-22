@@ -26,7 +26,7 @@ module Nibbler; module Views
     end
 
     def matches_string?(str)
-      view_instance.currentTitle.downcase.include?(str)
+      view_instance.currentTitle.downcase.include?(str.downcase)
     end
 
     def text
