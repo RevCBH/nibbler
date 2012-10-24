@@ -5,7 +5,7 @@ This is my personal exploration for consuming .nib files from RubyMotion. It's e
 
 ## Purpose
 
-Interface builder can't wire components to ruby code, leaving the options tagging everything, searching for controls manually, or building interfaces programmatically. While the last option has seen a lot of work, I like working in IB and with designers that use it. Nibbler is an attempt to simplify the consumption of .xib and .nib files from RM via declarative binding of controls.
+Interface builder can't wire components to ruby code. That leaves the options of tagging everything, searching for controls manually, or building interfaces programmatically. While the last option has seen a lot of work, I like working in IB and with designers that use it. Nibbler is an attempt to simplify the consumption of .xib and .nib files from RM via declarative binding of controls.
 
 ## Usage
 
