@@ -9,7 +9,7 @@ Interface builder can't wire components to ruby code. That leaves the options of
 
 ## Usage
 
-View controller classes deriver from `Nibbler::Controller` and have class methods for binding to specific elements. For example, the `button` accepts a selector argument, which determines which button to bind against (e.g. by title, or position) and a hash specifying how to bind it with code. In the code below, the following line gives an example of this:
+View controller classes deriver from `Nibbler::Controller` and have class methods for binding to specific elements. For example, the `button` method accepts a selector argument, which determines which button to bind against (e.g. by title, or position) and a hash specifying how to bind it. In the code below, the following line gives an example of this:
 
     button :seconds, as: 'interval_unit', action: 'select_interval_unit'
 
